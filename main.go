@@ -10,10 +10,12 @@ type Topic struct {
 	chans []chan interface{}
 }
 
+// Метод добавления топика в массив
 func (t *Topic) Subscribe(c chan interface{}) {
 
 }
 
+// Метод удаления топика в массив
 func (t *Topic) Unsubscribe(c chan interface{}) {
 
 }
@@ -25,7 +27,6 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 
 	case "GET":
-		// save_topic(rw, topic, topics)
 		t, ok := topics[topic]
 		if !ok {
 			t = Topic{chans: make([]chan interface{})}
@@ -42,11 +43,6 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Fprintf(rw, topic)
 }
-
-// func save_topic(rw http.ResponseWriter, topic string, topics Topic) {
-// 	fmt.Fprintf(rw, topic)
-
-// }
 
 func main() {
 	http.HandleFunc("/", handler)
