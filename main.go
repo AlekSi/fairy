@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	// "fmt"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -48,15 +48,19 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 		}
 
 	case "POST":
-		topic := req.URL.Path
 		body, err := ioutil.ReadAll(req.Body)
 		if err == nil {
 			// fmt.Fprintf(rw, string(body))
 			var msg Message
 			err = json.Unmarshal(body, &msg)
-			t := topics[topic]
-			for c := range t.chans {
-				t.chans[c] <- msg
+			if err == nil {
+				t := topics[topic]
+				fmt.Fprintf(rw, string(len(t.chans)))
+				for c := range t.chans {
+					t.chans[c] <- msg
+				}
+			} else {
+				fmt.Fprintf(rw, "aaaaa %s", err)
 			}
 		}
 
