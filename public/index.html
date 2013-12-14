@@ -14,11 +14,11 @@
         <table class="table table-condensed">
           <thead>
             <tr>
-              <th>{{messages.length}} messages</th>
+              <th>{{count}} messages</th>
             </tr>
           </thead>
           <tbody>
-            <tr ng-repeat="message in messages">
+            <tr ng-repeat="message in messages | limitTo:20">
               <td>{{message.body}}</td>
             </tr>
           </tbody>
