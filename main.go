@@ -5,13 +5,9 @@ import (
 	"github.com/fairy-project/fairy/fairy"
 	"log"
 	"net/http"
-	"sync"
 )
 
-var (
-	topics = make(map[string]*fairy.Topic)
-	m      sync.Mutex
-)
+var hub = fairy.NewHub()
 
 func publish(rw http.ResponseWriter, req *http.Request) {
 	topic := req.URL.Path
@@ -24,14 +20,7 @@ func publish(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	m.Lock()
-	t, ok := topics[topic]
-	if !ok {
-		t = fairy.NewTopic()
-		topics[topic] = t
-	}
-	m.Unlock()
-
+	t := hub.GetTopic(topic)
 	log.Printf("%s: %s: PUBLISH %v", req.RemoteAddr, topic, msg)
 	t.Publish(msg)
 
@@ -42,15 +31,8 @@ func subscribe(rw http.ResponseWriter, req *http.Request) {
 	topic := req.URL.Path
 	req.Body.Close()
 
-	m.Lock()
-	t, ok := topics[topic]
-	if !ok {
-		t = fairy.NewTopic()
-		topics[topic] = t
-	}
-	m.Unlock()
-
 	id := req.RemoteAddr
+	t := hub.GetTopic(topic)
 	log.Printf("%s: %s: GET", id, topic)
 	c := t.GetChannel(id)
 	msg := <-c
