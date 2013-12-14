@@ -12,7 +12,7 @@ type Topic struct {
 
 // Метод добавления топика в массив
 func (t *Topic) Subscribe(c chan interface{}) {
-	append(t.chans, c)
+	t.chans = append(t.chans, c)
 }
 
 // Метод удаления топика в массив
