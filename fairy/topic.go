@@ -4,8 +4,6 @@ import (
 	"sync"
 )
 
-type Message map[string]interface{}
-
 type Topic struct {
 	subscribers map[string]chan Message
 	rw          sync.RWMutex

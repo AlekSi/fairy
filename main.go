@@ -32,7 +32,7 @@ func publish(rw http.ResponseWriter, req *http.Request) {
 	}
 	m.Unlock()
 
-	log.Printf("%s: publish to %s: %v", req.RemoteAddr, topic, msg)
+	log.Printf("%s: %s: PUBLISH %v", req.RemoteAddr, topic, msg)
 	t.Publish(msg)
 
 	rw.WriteHeader(201)
@@ -51,10 +51,10 @@ func subscribe(rw http.ResponseWriter, req *http.Request) {
 	m.Unlock()
 
 	id := req.RemoteAddr
-	log.Printf("%s: subscribe to %s", id, topic)
+	log.Printf("%s: %s: GET", id, topic)
 	c := t.GetChannel(id)
 	msg := <-c
-	log.Printf("%s: received %v", id, msg)
+	log.Printf("%s: %s: GOT %v", id, topic, msg)
 
 	json.NewEncoder(rw).Encode(msg)
 }
