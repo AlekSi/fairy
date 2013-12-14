@@ -64,6 +64,9 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	adminPrefix := "/meta/admin/"
+	http.Handle(adminPrefix, http.StripPrefix(adminPrefix, http.FileServer(http.Dir("public"))))
+
 	http.HandleFunc("/", handler)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
