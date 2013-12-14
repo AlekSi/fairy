@@ -4,65 +4,82 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/manveru/faker"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 )
 
-func check(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+const (
+	C  = 10
+	N1 = 100
+)
+
+var (
+	RecvNum int64
+	SentNum int64
+)
 
 func get(url string) {
 	for {
 		resp, err := http.Get(url)
-		check(err)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		var msg map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&msg)
+		if err != nil {
+			log.Fatal(err)
+		}
 		resp.Body.Close()
-		check(err)
 
-		var m map[string]string
-		err = json.Unmarshal(body, &m)
-		check(err)
-
-		log.Println(m)
+		atomic.AddInt64(&RecvNum, 1)
+		log.Print(msg)
 	}
 }
 
-func post(url string, fake *faker.Faker) {
-	for {
-		m := map[string]string{"m": fake.Sentence(1, true)}
-		log.Printf("Posted: %v \n", m)
+func post(url string) {
+	fake, err := faker.New("en")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		b, err := json.Marshal(m)
-		check(err)
+	var (
+		msg  = make(map[string]interface{})
+		buf  bytes.Buffer
+		resp *http.Response
+	)
 
-		var buf bytes.Buffer
-		buf.Write([]byte(b))
+	for n1 := 0; n1 < N1; n1++ {
+		msg["n"] = atomic.AddInt64(&SentNum, 1)
+		msg["m"] = fake.Sentence(1, true)
+		msg["ts"] = time.Now().Format("15:04:05.000")
 
-		resp, err := http.Post(url, "application/json", &buf)
-		check(err)
+		buf.Reset()
+		err = json.NewEncoder(&buf).Encode(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err = http.Post(url, "application/json", &buf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp.Body.Close()
 
 		if resp.StatusCode != 201 {
 			log.Fatal(resp.Status)
 		}
-		resp.Body.Close()
-
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
 func main() {
 	url := "http://localhost:8081/topic"
-	fake, err := faker.New("en")
-	check(err)
+	log.Printf("Sending %d messages to %s with concurrency %d ...", N1*C, url, C)
 
-	for i := 0; i < 1; i++ {
-		go post(url, fake)
+	for i := 0; i < C; i++ {
+		go post(url)
 	}
 
 	get(url)
