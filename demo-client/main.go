@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/fairy-project/fairy/common"
 	"github.com/manveru/faker"
 	"io/ioutil"
 	"log"
@@ -26,7 +27,7 @@ func get(url string) {
 		resp.Body.Close()
 		check(err)
 
-		var m map[string]interface{}
+		var m common.Message
 		err = json.Unmarshal(body, &m)
 		check(err)
 
@@ -38,8 +39,8 @@ func get(url string) {
 
 func post(url string, name string, message string) {
 	for {
-		m := map[string]interface{}{"name": name, "message": message}
-		fmt.Println(m)
+		m := common.Message{"name": name, "message": message}
+		fmt.Printf("Posted: %v \n", m)
 
 		b, err := json.Marshal(m)
 		check(err)
@@ -60,7 +61,7 @@ func post(url string, name string, message string) {
 }
 
 func main() {
-	url := "http://localhost/topic"
+	url := "http://localhost:8081/topic"
 	fake, err := faker.New("en")
 	check(err)
 
