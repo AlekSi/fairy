@@ -7,16 +7,16 @@ import (
 
 type Topic struct {
 	subscribers map[string]chan common.Message
-	m           sync.Mutex
+	rw          sync.RWMutex
 }
 
-func NewTopic() Topic {
-	return Topic{subscribers: make(map[string]chan common.Message)}
+func NewTopic() *Topic {
+	return &Topic{subscribers: make(map[string]chan common.Message)}
 }
 
 func (t *Topic) GetChannel(subscriberId string) (c chan common.Message) {
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.rw.Lock()
+	defer t.rw.Unlock()
 
 	c, present := t.subscribers[subscriberId]
 	if present {
@@ -29,13 +29,16 @@ func (t *Topic) GetChannel(subscriberId string) (c chan common.Message) {
 }
 
 func (t *Topic) Unsubscribe(subscriberId string) {
-	t.m.Lock()
-	defer t.m.Unlock()
+	t.rw.Lock()
+	defer t.rw.Unlock()
 
 	delete(t.subscribers, subscriberId)
 }
 
 func (t *Topic) Publish(m common.Message) {
+	t.rw.Lock()
+	defer t.rw.Unlock()
+
 	for _, c := range t.subscribers {
 		c <- m
 	}

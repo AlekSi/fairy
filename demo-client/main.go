@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/fairy-project/fairy/common"
 	"github.com/manveru/faker"
 	"io/ioutil"
@@ -31,16 +30,14 @@ func get(url string) {
 		err = json.Unmarshal(body, &m)
 		check(err)
 
-		for _, v := range m {
-			fmt.Println(v)
-		}
+		log.Println(m)
 	}
 }
 
-func post(url string, name string, message string) {
+func post(url string, fake *faker.Faker) {
 	for {
-		m := common.Message{"name": name, "message": message}
-		fmt.Printf("Posted: %v \n", m)
+		m := common.Message{"m": fake.Sentence(1, true)}
+		log.Printf("Posted: %v \n", m)
 
 		b, err := json.Marshal(m)
 		check(err)
@@ -52,7 +49,7 @@ func post(url string, name string, message string) {
 		check(err)
 
 		if resp.StatusCode != 201 {
-			fmt.Println(resp.Status)
+			log.Fatal(resp.Status)
 		}
 		resp.Body.Close()
 
@@ -65,8 +62,8 @@ func main() {
 	fake, err := faker.New("en")
 	check(err)
 
-	for i := 0; i < 2; i++ {
-		go post(url, fake.Name(), fake.Sentence(5, true))
+	for i := 0; i < 1; i++ {
+		go post(url, fake)
 	}
 
 	get(url)

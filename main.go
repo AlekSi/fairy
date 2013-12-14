@@ -5,13 +5,17 @@ import (
 	"github.com/fairy-project/fairy/common"
 	"log"
 	"net/http"
+	"sync"
 )
 
 var (
-	topics = make(map[string]Topic)
+	topics = make(map[string]*Topic)
+	m      sync.Mutex
 )
 
 func publish(rw http.ResponseWriter, req *http.Request) {
+	topic := req.URL.Path
+
 	var msg common.Message
 	err := json.NewDecoder(req.Body).Decode(&msg)
 	req.Body.Close()
@@ -20,23 +24,37 @@ func publish(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	t := topics[req.URL.Path]
+	m.Lock()
+	t, ok := topics[topic]
+	if !ok {
+		t = NewTopic()
+		topics[topic] = t
+	}
+	m.Unlock()
+
+	log.Printf("%s: publish to %s: %v", req.RemoteAddr, topic, msg)
 	t.Publish(msg)
 
 	rw.WriteHeader(201)
 }
 
 func subscribe(rw http.ResponseWriter, req *http.Request) {
+	topic := req.URL.Path
 	req.Body.Close()
 
-	t, ok := topics[req.URL.Path]
+	m.Lock()
+	t, ok := topics[topic]
 	if !ok {
 		t = NewTopic()
-		topics[req.URL.Path] = t
+		topics[topic] = t
 	}
+	m.Unlock()
 
-	c := t.GetChannel(req.RemoteAddr)
+	id := req.RemoteAddr
+	log.Printf("%s: subscribe to %s", id, topic)
+	c := t.GetChannel(id)
 	msg := <-c
+	log.Printf("%s: received %v", id, msg)
 
 	json.NewEncoder(rw).Encode(msg)
 }
