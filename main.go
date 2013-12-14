@@ -29,14 +29,14 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 	case "GET":
 		t, ok := topics[topic]
 		if !ok {
-			t = Topic{chans: make([]chan interface{})}
+			t = Topic{chans: make([]chan interface{}, 0)}
 			topics[topic] = t
 		}
 
 		c := make(chan interface{})
 		t.Subscribe(c)
-		v := <-c
-		rw.Write(v)
+		// v := <-c
+		// rw.Write(v)
 
 	case "POST":
 		rw.WriteHeader(201)
