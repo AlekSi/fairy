@@ -1,0 +1,29 @@
+<!doctype html>
+<html ng-app>
+  <head>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <script src="js/angular.min.js"></script>
+
+    <link rel="stylesheet" href="/css/fairy.css">
+    <script src="js/fairy.js"></script>
+  </head>
+  <body>
+    <div>
+      <div ng-controller="MessageCtrl">
+        <table class="table table-condensed">
+          <thead>
+            <tr>
+              <th>{{messages.length}} messages</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="message in messages">
+              <td>{{message.body}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
