@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -41,16 +42,20 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 		message := <-c
 		t.Unsubscribe(c)
 
-		b, err := json.Marshal(v)
-		if err != nil {
+		b, err := json.Marshal(message)
+		if err == nil {
 			rw.Write(b)
 		}
 
 	case "POST":
-    []byte -> Message
-		for c := range t.chans {
-			c <- message
+		body, err := ioutil.ReadAll(req.Body)
+		if err == nil {
+			fmt.Fprintf(rw, string(body))
 		}
+		//   []byte -> Message
+		// for c := range t.chans {
+		// 	c <- message
+		// }
 		rw.WriteHeader(201)
 	}
 }
