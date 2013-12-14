@@ -1,11 +1,16 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/fairy-project/fairy/fairy"
+	"io"
 	"log"
 	"net/http"
 )
+
+const CookieName = "subscriber_id"
 
 var hub = fairy.NewHub()
 
@@ -21,7 +26,7 @@ func publish(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	t := hub.GetTopic(topic)
-	log.Printf("%s: %s: PUBLISH %v", req.RemoteAddr, topic, msg)
+	// log.Printf("[ %20s ] %s: PUBLISH %v", req.RemoteAddr, topic, msg)
 	t.Publish(msg)
 
 	rw.WriteHeader(201)
@@ -31,12 +36,24 @@ func subscribe(rw http.ResponseWriter, req *http.Request) {
 	topic := req.URL.Path
 	req.Body.Close()
 
-	id := req.RemoteAddr
+	cookie, _ := req.Cookie(CookieName)
+	if cookie == nil {
+		b := make([]byte, 8)
+		_, err := io.ReadFull(rand.Reader, b)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cookie = &http.Cookie{Name: CookieName, Value: hex.EncodeToString(b)}
+		http.SetCookie(rw, cookie)
+	}
+
+	id := cookie.Value
 	t := hub.GetTopic(topic)
-	log.Printf("%s: %s: GET", id, topic)
+	// log.Printf("[ %20s ] %s: %s: GET", req.RemoteAddr, id, topic)
 	c := t.GetChannel(id)
 	msg := <-c
-	log.Printf("%s: %s: GOT %v", id, topic, msg)
+	// log.Printf("[ %20s ] %s: %s: GOT %v", req.RemoteAddr, id, topic, msg)
 
 	json.NewEncoder(rw).Encode(msg)
 }
