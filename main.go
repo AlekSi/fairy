@@ -48,14 +48,17 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 		}
 
 	case "POST":
+    topic := req.URL.Path
 		body, err := ioutil.ReadAll(req.Body)
 		if err == nil {
-			fmt.Fprintf(rw, string(body))
-		}
-		//   []byte -> Message
-		// for c := range t.chans {
-		// 	c <- message
-		// }
+			// fmt.Fprintf(rw, string(body))
+      t := topics[topic]
+  		for c := range t.chans {
+  			c <- message
+  		}
+    }
+
+    //   []byte -> Message
 		rw.WriteHeader(201)
 	}
 }
