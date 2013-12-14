@@ -1,17 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"github.com/fairy-project/fairy/common"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"sync"
-)
-
-var (
-	ErrAlreadySubscribed = errors.New("already subscribed")
 )
 
 type Topic struct {
@@ -19,27 +10,33 @@ type Topic struct {
 	m           sync.Mutex
 }
 
-func (t *Topic) Subscribe(id string, c chan common.Message) (err error) {
-	t.m.Lock()
-	defer t.m.Unlock()
-
-	_, present := t.subscribers[id]
-	if present {
-		err = ErrAlreadySubscribed
-		return
-	}
-	t.subscribers[id] = c
+func NewTopic() Topic {
+	return Topic{subscribers: make(map[string]chan common.Message)}
 }
 
-func (t *Topic) Unsubscribe(id string) {
+func (t *Topic) GetChannel(subscriberId string) (c chan common.Message) {
 	t.m.Lock()
 	defer t.m.Unlock()
 
-	delete(t.subscribers, id)
+	c, present := t.subscribers[subscriberId]
+	if present {
+		return
+	}
+
+	c = make(chan common.Message)
+	t.subscribers[subscriberId] = c
+	return
+}
+
+func (t *Topic) Unsubscribe(subscriberId string) {
+	t.m.Lock()
+	defer t.m.Unlock()
+
+	delete(t.subscribers, subscriberId)
 }
 
 func (t *Topic) Publish(m common.Message) {
-	for c := range t.subscribers {
+	for _, c := range t.subscribers {
 		c <- m
 	}
 }

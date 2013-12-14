@@ -2,70 +2,53 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"github.com/fairy-project/fairy/common"
 	"log"
 	"net/http"
 )
 
-type Message map[string]interface{}
+var (
+	topics = make(map[string]Topic)
+)
 
-type Topic struct {
-	chans []chan Message
+func publish(rw http.ResponseWriter, req *http.Request) {
+	var msg common.Message
+	err := json.NewDecoder(req.Body).Decode(&msg)
+	req.Body.Close()
+	if err != nil {
+		http.Error(rw, err.Error(), 400)
+		return
+	}
+
+	t := topics[req.URL.Path]
+	t.Publish(msg)
+
+	rw.WriteHeader(201)
 }
 
-// Метод добавления топика в массив
-func (t *Topic) Subscribe(c chan Message) {
-	t.chans = append(t.chans, c)
+func subscribe(rw http.ResponseWriter, req *http.Request) {
+	req.Body.Close()
+
+	t, ok := topics[req.URL.Path]
+	if !ok {
+		t = NewTopic()
+		topics[req.URL.Path] = t
+	}
+
+	c := t.GetChannel(req.RemoteAddr)
+	msg := <-c
+
+	json.NewEncoder(rw).Encode(msg)
 }
-
-// Метод удаления топика в массив
-func (t *Topic) Unsubscribe(c chan Message) {
-
-}
-
-var topics = make(map[string]Topic)
 
 func handler(rw http.ResponseWriter, req *http.Request) {
-	topic := req.URL.Path // get topic name
 	switch req.Method {
-
 	case "GET":
-		t, ok := topics[topic]
-		if !ok {
-			t = Topic{chans: make([]chan Message, 0)}
-			topics[topic] = t
-		}
-
-		c := make(chan Message)
-		t.Subscribe(c)
-		message := <-c
-		t.Unsubscribe(c)
-
-		b, err := json.Marshal(message)
-		if err == nil {
-			rw.Write(b)
-		}
-
+		subscribe(rw, req)
 	case "POST":
-		body, err := ioutil.ReadAll(req.Body)
-		if err == nil {
-			// fmt.Fprintf(rw, string(body))
-			var msg Message
-			err = json.Unmarshal(body, &msg)
-			if err == nil {
-				t := topics[topic]
-				fmt.Fprintf(rw, string(len(t.chans)))
-				for c := range t.chans {
-					t.chans[c] <- msg
-				}
-			} else {
-				fmt.Fprintf(rw, "aaaaa %s", err)
-			}
-		}
-
-		//   []byte -> Message
-		rw.WriteHeader(201)
+		publish(rw, req)
+	default:
+		http.Error(rw, "bad method", 400)
 	}
 }
 
