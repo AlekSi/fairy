@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/manveru/faker"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -12,8 +14,8 @@ import (
 )
 
 const (
-	PubC = 10
-	SubC = 2
+	PubC = 5
+	SubC = 20
 )
 
 var (
@@ -24,7 +26,7 @@ var (
 func pub(url string) {
 	fake, err := faker.New("en")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	var (
@@ -42,17 +44,20 @@ func pub(url string) {
 		buf.Reset()
 		err = json.NewEncoder(&buf).Encode(msg)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 
 		resp, err = client.Post(url, "application/json", &buf)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			time.Sleep(time.Second)
+			continue
 		}
+		io.Copy(ioutil.Discard, resp.Body)
 		resp.Body.Close()
 
 		if resp.StatusCode != 201 {
-			log.Fatal(resp.Status)
+			log.Panic(resp.Status)
 		}
 	}
 }
@@ -60,7 +65,7 @@ func pub(url string) {
 func sub(url string) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	client := http.Client{Jar: jar}
@@ -68,14 +73,17 @@ func sub(url string) {
 	for {
 		resp, err := client.Get(url)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			time.Sleep(time.Second)
+			continue
 		}
 
 		var msg map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&msg)
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
+		io.Copy(ioutil.Discard, resp.Body)
 		resp.Body.Close()
 
 		atomic.AddInt64(&SubNum, 1)
@@ -84,7 +92,7 @@ func sub(url string) {
 }
 
 func main() {
-	url := "http://127.0.0.1:8081/topic"
+	url := "http://localhost:8081/topic"
 
 	log.Printf("Publishing messages to %s with concurrency %d.", url, PubC)
 	for i := 0; i < PubC; i++ {
