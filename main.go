@@ -1,22 +1,25 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 )
 
+type Message map[string]interface{}
+
 type Topic struct {
-	chans []chan interface{}
+	chans []chan Message
 }
 
 // Метод добавления топика в массив
-func (t *Topic) Subscribe(c chan interface{}) {
+func (t *Topic) Subscribe(c chan Message) {
 	t.chans = append(t.chans, c)
 }
 
 // Метод удаления топика в массив
-func (t *Topic) Unsubscribe(c chan interface{}) {
+func (t *Topic) Unsubscribe(c chan Message) {
 
 }
 
@@ -29,19 +32,27 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 	case "GET":
 		t, ok := topics[topic]
 		if !ok {
-			t = Topic{chans: make([]chan interface{}, 0)}
+			t = Topic{chans: make([]chan Message, 0)}
 			topics[topic] = t
 		}
 
-		c := make(chan interface{})
+		c := make(chan Message)
 		t.Subscribe(c)
-		// v := <-c
-		// rw.Write(v)
+		message := <-c
+		t.Unsubscribe(c)
+
+		b, err := json.Marshal(v)
+		if err != nil {
+			rw.Write(b)
+		}
 
 	case "POST":
+    []byte -> Message
+		for c := range t.chans {
+			c <- message
+		}
 		rw.WriteHeader(201)
 	}
-	fmt.Fprintf(rw, topic)
 }
 
 func main() {
