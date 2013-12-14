@@ -59,6 +59,9 @@ func (t *Topic) Publish(m Message) {
 	defer t.rw.RUnlock()
 
 	for _, c := range t.subscribers {
-		c <- m
+		select {
+		case c <- m:
+		default:
+		}
 	}
 }
