@@ -7,7 +7,7 @@ function MessageCtrl($scope, $http, $timeout) {
   (function tick() {
     $http.get("/topic").
       success(function(data, status, headers, config) {
-        $scope.messages.push({body: data});
+        $scope.messages.push(data);
         if ($scope.count > 20) {
           $scope.messages.splice(0, 1);
         }
