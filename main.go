@@ -2,21 +2,21 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/fairy-project/fairy/common"
+	"github.com/fairy-project/fairy/fairy"
 	"log"
 	"net/http"
 	"sync"
 )
 
 var (
-	topics = make(map[string]*Topic)
+	topics = make(map[string]*fairy.Topic)
 	m      sync.Mutex
 )
 
 func publish(rw http.ResponseWriter, req *http.Request) {
 	topic := req.URL.Path
 
-	var msg common.Message
+	var msg fairy.Message
 	err := json.NewDecoder(req.Body).Decode(&msg)
 	req.Body.Close()
 	if err != nil {
@@ -27,7 +27,7 @@ func publish(rw http.ResponseWriter, req *http.Request) {
 	m.Lock()
 	t, ok := topics[topic]
 	if !ok {
-		t = NewTopic()
+		t = fairy.NewTopic()
 		topics[topic] = t
 	}
 	m.Unlock()
@@ -45,7 +45,7 @@ func subscribe(rw http.ResponseWriter, req *http.Request) {
 	m.Lock()
 	t, ok := topics[topic]
 	if !ok {
-		t = NewTopic()
+		t = fairy.NewTopic()
 		topics[topic] = t
 	}
 	m.Unlock()
@@ -75,5 +75,8 @@ func main() {
 	http.Handle(adminPrefix, http.StripPrefix(adminPrefix, http.FileServer(http.Dir("public"))))
 
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8081", nil))
+
+	addr := ":8081"
+	log.Printf("Listening on %s ...", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }

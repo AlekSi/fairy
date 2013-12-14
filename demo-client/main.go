@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/fairy-project/fairy/common"
 	"github.com/manveru/faker"
 	"io/ioutil"
 	"log"
@@ -26,7 +25,7 @@ func get(url string) {
 		resp.Body.Close()
 		check(err)
 
-		var m common.Message
+		var m map[string]string
 		err = json.Unmarshal(body, &m)
 		check(err)
 
@@ -36,7 +35,7 @@ func get(url string) {
 
 func post(url string, fake *faker.Faker) {
 	for {
-		m := common.Message{"m": fake.Sentence(1, true)}
+		m := map[string]string{"m": fake.Sentence(1, true)}
 		log.Printf("Posted: %v \n", m)
 
 		b, err := json.Marshal(m)

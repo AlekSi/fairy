@@ -1,20 +1,21 @@
-package main
+package fairy
 
 import (
-	"github.com/fairy-project/fairy/common"
 	"sync"
 )
 
+type Message map[string]interface{}
+
 type Topic struct {
-	subscribers map[string]chan common.Message
+	subscribers map[string]chan Message
 	rw          sync.RWMutex
 }
 
 func NewTopic() *Topic {
-	return &Topic{subscribers: make(map[string]chan common.Message)}
+	return &Topic{subscribers: make(map[string]chan Message)}
 }
 
-func (t *Topic) GetChannel(subscriberId string) (c chan common.Message) {
+func (t *Topic) GetChannel(subscriberId string) (c chan Message) {
 	t.rw.Lock()
 	defer t.rw.Unlock()
 
@@ -23,7 +24,7 @@ func (t *Topic) GetChannel(subscriberId string) (c chan common.Message) {
 		return
 	}
 
-	c = make(chan common.Message)
+	c = make(chan Message)
 	t.subscribers[subscriberId] = c
 	return
 }
@@ -35,9 +36,9 @@ func (t *Topic) Unsubscribe(subscriberId string) {
 	delete(t.subscribers, subscriberId)
 }
 
-func (t *Topic) Publish(m common.Message) {
-	t.rw.Lock()
-	defer t.rw.Unlock()
+func (t *Topic) Publish(m Message) {
+	t.rw.RLock()
+	defer t.rw.RUnlock()
 
 	for _, c := range t.subscribers {
 		c <- m
