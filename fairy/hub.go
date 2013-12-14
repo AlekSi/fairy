@@ -1,7 +1,9 @@
 package fairy
 
 import (
+	"log"
 	"sync"
+	"time"
 )
 
 type Hub struct {
@@ -19,7 +21,15 @@ func (h *Hub) GetTopic(topic string) (t *Topic) {
 
 	t = h.topics[topic]
 	if t == nil {
-		t = NewTopic()
+		t = NewTopic(1000)
+
+		go func() {
+			for {
+				time.Sleep(time.Second)
+				log.Printf("%s: %#v", topic, t)
+			}
+		}()
+
 		h.topics[topic] = t
 	}
 	return
