@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
+	"github.com/davecheney/profile"
 	"github.com/fairy-project/fairy/fairy"
 	"io"
 	"log"
@@ -70,6 +72,12 @@ func handler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	profileCPU := flag.Bool("profile", false, "profile CPU")
+	flag.Parse()
+	if *profileCPU {
+		defer profile.Start(profile.CPUProfile).Stop()
+	}
+
 	adminPrefix := "/meta/admin/"
 	http.Handle(adminPrefix, http.StripPrefix(adminPrefix, http.FileServer(http.Dir("public"))))
 
