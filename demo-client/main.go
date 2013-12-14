@@ -6,53 +6,36 @@ import (
 	"github.com/manveru/faker"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	C  = 10
-	N1 = 100
+	PubC = 10
+	SubC = 2
 )
 
 var (
-	RecvNum int64
-	SentNum int64
+	PubNum int64
+	SubNum int64
 )
 
-func get(url string) {
-	for {
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var msg map[string]interface{}
-		err = json.NewDecoder(resp.Body).Decode(&msg)
-		if err != nil {
-			log.Fatal(err)
-		}
-		resp.Body.Close()
-
-		atomic.AddInt64(&RecvNum, 1)
-		log.Print(msg)
-	}
-}
-
-func post(url string) {
+func pub(url string) {
 	fake, err := faker.New("en")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var (
-		msg  = make(map[string]interface{})
-		buf  bytes.Buffer
-		resp *http.Response
+		client http.Client
+		msg    = make(map[string]interface{})
+		buf    bytes.Buffer
+		resp   *http.Response
 	)
 
-	for n1 := 0; n1 < N1; n1++ {
-		msg["n"] = atomic.AddInt64(&SentNum, 1)
+	for {
+		msg["n"] = atomic.AddInt64(&PubNum, 1)
 		msg["m"] = fake.Sentence(1, true)
 		msg["ts"] = time.Now().Format("15:04:05.000")
 
@@ -62,7 +45,7 @@ func post(url string) {
 			log.Fatal(err)
 		}
 
-		resp, err = http.Post(url, "application/json", &buf)
+		resp, err = client.Post(url, "application/json", &buf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -74,13 +57,47 @@ func post(url string) {
 	}
 }
 
-func main() {
-	url := "http://localhost:8081/topic"
-	log.Printf("Sending %d messages to %s with concurrency %d ...", N1*C, url, C)
-
-	for i := 0; i < C; i++ {
-		go post(url)
+func sub(url string) {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	get(url)
+	client := http.Client{Jar: jar}
+
+	for {
+		resp, err := client.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var msg map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resp.Body.Close()
+
+		atomic.AddInt64(&SubNum, 1)
+		// log.Print(msg)
+	}
+}
+
+func main() {
+	url := "http://127.0.0.1:8081/topic"
+
+	log.Printf("Publishing messages to %s with concurrency %d.", url, PubC)
+	for i := 0; i < PubC; i++ {
+		go pub(url)
+	}
+
+	log.Printf("Subscribing to messages from %s with concurrency %d.", url, SubC)
+	for i := 0; i < SubC; i++ {
+		go sub(url)
+	}
+
+	for {
+		log.Printf("Pub: %10d\tSub: %10d", atomic.LoadInt64(&PubNum), atomic.LoadInt64(&SubNum))
+		time.Sleep(time.Second)
+	}
 }
