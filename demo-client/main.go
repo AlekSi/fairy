@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/manveru/faker"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
-  "github.com/manveru/faker"
 )
 
 func check(err error) {
@@ -30,7 +30,9 @@ func get(url string) {
 		err = json.Unmarshal(body, &m)
 		check(err)
 
-		for _, v := range m { fmt.Println(v) }
+		for _, v := range m {
+			fmt.Println(v)
+		}
 	}
 }
 
@@ -58,9 +60,9 @@ func post(url string, name string, message string) {
 }
 
 func main() {
-	url := "https://rubygems.org/api/v1/gems/rails.json"
-  fake, err := faker.New("en")
-  check(err)
+	url := "http://localhost/topic"
+	fake, err := faker.New("en")
+	check(err)
 
 	for i := 0; i < 2; i++ {
 		go post(url, fake.Name(), fake.Sentence(5, true))
