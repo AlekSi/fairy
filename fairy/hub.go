@@ -1,14 +1,12 @@
 package fairy
 
 import (
-	"log"
 	"sync"
-	"time"
 )
 
 type Hub struct {
 	topics map[string]*Topic // key - topic
-	m      sync.Mutex
+	rw     sync.RWMutex
 }
 
 func NewHub() *Hub {
@@ -16,21 +14,24 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) GetTopic(topic string) (t *Topic) {
-	h.m.Lock()
-	defer h.m.Unlock()
-
+	// optimistic path
+	h.rw.RLock()
 	t = h.topics[topic]
-	if t == nil {
-		t = NewTopic(1000)
-
-		go func() {
-			for {
-				time.Sleep(time.Second)
-				log.Printf("%s: %#v", topic, t)
-			}
-		}()
-
-		h.topics[topic] = t
+	h.rw.RUnlock()
+	if t != nil {
+		return
 	}
+
+	h.rw.Lock()
+	defer h.rw.Unlock()
+
+	// try again with write lock
+	t = h.topics[topic]
+	if t != nil {
+		return
+	}
+
+	t = NewTopic(1000)
+	h.topics[topic] = t
 	return
 }
