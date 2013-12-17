@@ -10,14 +10,17 @@ type Topic struct {
 	subscribers  map[string]chan Message // key - subscriberId
 	bufSize      int
 	pub, pubSkip uint64
-	rw           sync.Mutex
+	rw           sync.RWMutex
 }
 
 // check interface
 var _ fmt.GoStringer = &Topic{}
 
 func NewTopic(bufSize int) *Topic {
-	return &Topic{subscribers: make(map[string]chan Message), bufSize: bufSize}
+	return &Topic{
+		subscribers: make(map[string]chan Message),
+		bufSize:     bufSize,
+	}
 }
 
 func (t *Topic) GoString() (res string) {
@@ -26,11 +29,20 @@ func (t *Topic) GoString() (res string) {
 }
 
 func (t *Topic) GetChannel(subscriberId string) (c chan Message) {
+	// optimistic path
+	t.rw.RLock()
+	c = t.subscribers[subscriberId]
+	t.rw.RUnlock()
+	if c != nil {
+		return
+	}
+
 	t.rw.Lock()
 	defer t.rw.Unlock()
 
-	c, present := t.subscribers[subscriberId]
-	if present {
+	// try again with write lock
+	c = t.subscribers[subscriberId]
+	if c != nil {
 		return
 	}
 
