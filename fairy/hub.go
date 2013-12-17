@@ -5,12 +5,16 @@ import (
 )
 
 type Hub struct {
-	topics map[string]*Topic // key - topic
-	rw     sync.RWMutex
+	topics  map[string]*Topic // key - topic
+	bufSize int
+	rw      sync.RWMutex
 }
 
-func NewHub() *Hub {
-	return &Hub{topics: make(map[string]*Topic)}
+func NewHub(bufSize int) *Hub {
+	return &Hub{
+		topics:  make(map[string]*Topic),
+		bufSize: bufSize,
+	}
 }
 
 func (h *Hub) GetTopic(topic string) (t *Topic) {
@@ -31,7 +35,7 @@ func (h *Hub) GetTopic(topic string) (t *Topic) {
 		return
 	}
 
-	t = NewTopic(1000)
+	t = NewTopic(h.bufSize)
 	h.topics[topic] = t
 	return
 }

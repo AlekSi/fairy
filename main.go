@@ -14,7 +14,7 @@ import (
 
 const CookieName = "subscriber_id"
 
-var hub = fairy.NewHub()
+var hub = fairy.NewHub(1000)
 
 func publish(rw http.ResponseWriter, req *http.Request) {
 	topic := req.URL.Path
